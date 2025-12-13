@@ -120,43 +120,63 @@ class QuickTerminalController: BaseTerminalController {
         super.windowDidLoad()
         guard let window = self.window else { return }
 
-        // The controller is the window delegate so we can detect events such as
-        // window close so we can animate out.
         window.delegate = self
-
-        // The quick window is not restorable (yet!). "Yet" because in theory we can
-        // make this restorable, but it isn't currently implemented.
         window.isRestorable = false
-
-        // Setup our configured appearance that we support.
-        syncAppearance()
 
         // Setup our initial size based on our configured position
         position.setLoaded(window, size: derivedConfig.quickTerminalSize)
 
-        // Upon first adding this Window to its host view, older SwiftUI
-        // seems to have a "hiccup" and corrupts the frameRect,
-        // sometimes setting the size to zero, sometimes corrupting it.
-        // We pass the actual window's frame as "initial" frame directly
-        // to the window, so it can use that instead of the frameworks
-        // "interpretation"
         if let qtWindow = window as? QuickTerminalWindow {
             qtWindow.initialFrame = window.frame
         }
 
-        window.contentView = NSHostingView(
+        let hosting = NSHostingView(
             rootView: QuickTerminalView(
                 ghostty: self.ghostty,
                 controller: self,
-                tabManager: tabManager,
-            ))
+                tabManager: tabManager
+            )
+        )
 
-        // Clear out our frame at this point, the fixup from above is complete.
+        if #available(macOS 26.0, *) {
+            let glass = NSGlassEffectView()
+            glass.contentView = hosting
+            glass.cornerRadius = 20
+
+//            // Make sure it resizes with the window
+//            hosting.frame = glass.bounds
+//            hosting.autoresizingMask = [.width, .height]
+
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.contentView = glass
+        } else {
+            let effect = NSVisualEffectView()
+            effect.blendingMode = .behindWindow
+            effect.material = .underWindowBackground
+            effect.state = .active
+
+            effect.addSubview(hosting)
+            hosting.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                hosting.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
+                hosting.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
+                hosting.topAnchor.constraint(equalTo: effect.topAnchor),
+                hosting.bottomAnchor.constraint(equalTo: effect.bottomAnchor),
+            ])
+
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.contentView = effect
+        }
+
+        // Now that contentView is set, sync appearance rules
+        syncAppearance()
+
         if let qtWindow = window as? QuickTerminalWindow {
             qtWindow.initialFrame = nil
         }
 
-        // Animate the window in
         animateIn()
     }
 
@@ -608,24 +628,28 @@ class QuickTerminalController: BaseTerminalController {
     private func syncAppearance() {
         guard let window else { return }
 
-        // Change the collection behavior of the window depending on the configuration.
+        // Space behavior still applies in all modes
         window.collectionBehavior = derivedConfig.quickTerminalSpaceBehavior.collectionBehavior
 
-        // If our window is not visible, then no need to sync the appearance yet.
-        // Some APIs such as window blur have no effect unless the window is visible.
+        // If we're on macOS 26+ and the contentView is Liquid Glass, don't override it
+        if #available(macOS 26.0, *),
+           window.contentView is NSGlassEffectView {
+            // Keep the window transparent; the glass view renders the material
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            return
+        }
+
+        // Old behavior (pre-26, or if you intentionally don't use glass)
         guard window.isVisible else { return }
 
-        // If we have window transparency then set it transparent. Otherwise set it opaque.
         if self.derivedConfig.backgroundOpacity < 1 {
             window.isOpaque = false
-
-            // This is weird, but we don't use ".clear" because this creates a look that
-            // matches Terminal.app much more closer. This lets users transition from
-            // Terminal.app more easily.
             window.backgroundColor = .white.withAlphaComponent(0.001)
 
             ghostty_set_window_background_blur(
-                ghostty.app, Unmanaged.passUnretained(window).toOpaque())
+                ghostty.app, Unmanaged.passUnretained(window).toOpaque()
+            )
         } else {
             window.isOpaque = true
             window.backgroundColor = .windowBackgroundColor
