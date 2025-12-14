@@ -141,11 +141,15 @@ class QuickTerminalController: BaseTerminalController {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
             glass.contentView = hosting
-            glass.cornerRadius = 20
-
-//            // Make sure it resizes with the window
-//            hosting.frame = glass.bounds
-//            hosting.autoresizingMask = [.width, .height]
+            glass.cornerRadius = 28
+            glass.clipsToBounds = true
+            glass.tintColor = NSColor.black.withAlphaComponent(0.7)
+            glass.style = .clear
+            
+            hosting.wantsLayer = true
+            hosting.layer?.backgroundColor = NSColor.clear.cgColor
+            hosting.frame = glass.bounds
+            hosting.autoresizingMask = [.width, .height]
 
             window.isOpaque = false
             window.backgroundColor = .clear
