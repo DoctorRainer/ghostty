@@ -14,7 +14,7 @@ struct QuickTerminalView: View {
                     .background {
                         if #available(macOS 26.0, *) {
                             RoundedRectangle(cornerRadius: 28)
-                                .fill(.clear)
+                                .fill(.black.opacity(0.2))
                                 .glassEffect(.clear, in: .rect(cornerRadius: 28))
                         }
                     }

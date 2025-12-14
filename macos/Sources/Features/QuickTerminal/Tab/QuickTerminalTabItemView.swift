@@ -2,52 +2,49 @@ import SwiftUI
 
 struct QuickTerminalTabItemView: View {
     @ObservedObject var tab: QuickTerminalTab
-
     let isHighlighted: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
 
+    let glassNS: Namespace.ID
+
     @State private var isHovering = false
     @State private var isHoveringCloseButton = false
 
-    private var backgroundColor: Color {
-        if isHighlighted {
-            Color(NSColor.unemphasizedSelectedContentBackgroundColor)
-        } else if isHovering {
-            Color(NSColor.underPageBackgroundColor)
-        } else {
-            Color(NSColor.controlBackgroundColor)
-        }
+    private var glassTint: Color {
+        if isHighlighted { return .white.opacity(0.1) }
+        if isHovering { return .black.opacity(0.15) }
+        return .black.opacity(0.03)
     }
 
-    private var closeButtonBackgroundColor: Color {
-        if isHoveringCloseButton {
-            Color(NSColor.unemphasizedSelectedContentBackgroundColor)
-        } else {
-            backgroundColor
-        }
+    private var shape: some InsettableShape {
+        RoundedRectangle(cornerRadius: 28, style: .continuous)
     }
 
     var body: some View {
-        HStack(spacing: Constants.horizontalSpacing) {
-            renderCloseButton()
-            renderTitle()
-        }
-        .padding(.horizontal, Constants.horizontalPadding)
-        .frame(height: Constants.height)
-        .frame(minWidth: Constants.minWidth, maxWidth: .infinity)
-        .background(
-            Rectangle()
-                .fill(backgroundColor)
-                .onMiddleClick(perform: onClose)
-        )
-        .onHover { isHovering in
-            self.isHovering = isHovering
-        }
-        .onTapGesture {
-            DispatchQueue.main.async {
-                onSelect()
+        if #available(macOS 26.0, *) {
+            HStack(spacing: Constants.horizontalSpacing) {
+                renderCloseButton()
+                renderTitle()
             }
+            .frame(height: Constants.height)
+            .frame(minWidth: Constants.minWidth, maxWidth: .infinity)
+            .contentShape(shape)
+            .glassEffect(.regular.tint(glassTint), in: shape)
+            .glassEffectID(tab.id, in: glassNS)
+            .onHover { isHovering = $0 }
+            .onTapGesture { DispatchQueue.main.async { onSelect() } }
+        } else {
+            HStack(spacing: Constants.horizontalSpacing) {
+                renderCloseButton()
+                renderTitle()
+            }
+            .padding(.horizontal, Constants.horizontalPadding)
+            .frame(height: Constants.height)
+            .frame(minWidth: Constants.minWidth, maxWidth: .infinity)
+            .contentShape(shape)
+            .onHover { isHovering = $0 }
+            .onTapGesture { DispatchQueue.main.async { onSelect() } }
         }
     }
 
@@ -78,11 +75,30 @@ struct QuickTerminalTabItemView: View {
             .truncationMode(.tail)
             .frame(minWidth: 0, maxWidth: .infinity)
     }
+    
+    private var closeButtonBackgroundColor: Color {
+        if isHoveringCloseButton {
+            Color(NSColor.unemphasizedSelectedContentBackgroundColor)
+        } else {
+            backgroundColor
+        }
+    }
+    
+    private var backgroundColor: Color {
+        if isHighlighted {
+            Color(NSColor.unemphasizedSelectedContentBackgroundColor)
+        } else if isHovering {
+            Color(NSColor.underPageBackgroundColor)
+        } else {
+            Color(NSColor.controlBackgroundColor)
+        }
+    }
+
 }
 
 extension QuickTerminalTabItemView {
     enum Constants {
-        static let minWidth: CGFloat = 180
+        static let minWidth: CGFloat = 80
         static let height: CGFloat = 24
         static let horizontalSpacing: CGFloat = 4
         static let horizontalPadding: CGFloat = 8

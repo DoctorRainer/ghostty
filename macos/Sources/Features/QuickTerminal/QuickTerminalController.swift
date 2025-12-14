@@ -143,7 +143,7 @@ class QuickTerminalController: BaseTerminalController {
             glass.contentView = hosting
             glass.cornerRadius = 28
             glass.clipsToBounds = true
-            glass.tintColor = NSColor.black.withAlphaComponent(0.7)
+            glass.tintColor = NSColor.black.withAlphaComponent(0.6)
             glass.style = .clear
             
             hosting.wantsLayer = true

@@ -4,6 +4,8 @@ struct QuickTerminalTabBarView: View {
     @ObservedObject var tabManager: QuickTerminalTabManager
 
     @State private var isHoveringNewTabButton = false
+    
+    @Namespace private var glassNS
 
     private var newTabButtonBackgroundColor: Color {
         if isHoveringNewTabButton {
@@ -14,18 +16,24 @@ struct QuickTerminalTabBarView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            renderTabBar()
-            renderAddNewTabButton()
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer {
+                HStack(spacing: 5) {
+                    renderTabBar()
+                    renderAddNewTabButton()
+                }
+            }
+            .frame(height: Constants.height)
+            .background(.clear)
+        } else {
+            // Fallback on earlier versions
         }
-        .frame(height: Constants.height)
-        .background(Color(NSColor.controlBackgroundColor))
     }
 
     @ViewBuilder private func renderTabBar() -> some View {
         GeometryReader { geometry in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
+                HStack(spacing: 5) {
                     ForEach(tabManager.tabs, content: renderTabItem)
                 }
                 .frame(minWidth: geometry.size.width)
@@ -34,22 +42,24 @@ struct QuickTerminalTabBarView: View {
     }
 
     @ViewBuilder private func renderAddNewTabButton() -> some View {
-        Image(systemName: "plus")
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let tint: Color = isHoveringNewTabButton ? .black.opacity(0.3) : .black.opacity(0.4)
+
+        let base = Image(systemName: "plus")
             .foregroundColor(Color(NSColor.secondaryLabelColor))
             .padding(.horizontal, Constants.addNewTabButtonHorizontalPadding)
             .frame(width: Constants.height, height: Constants.height)
-            .background(
-                Rectangle()
-                    .fill(newTabButtonBackgroundColor)
-            )
-            .onHover { isHovering in
-                isHoveringNewTabButton = isHovering
-            }
-            .onTapGesture {
-                tabManager.addNewTab()
-            }
-            .buttonStyle(PlainButtonStyle())
+            .contentShape(shape)
+            .onHover { isHoveringNewTabButton = $0 }
+            .onTapGesture { tabManager.addNewTab() }
             .help("Create a new Tab")
+            .zIndex(9999)
+
+        if #available(macOS 26.0, *) {
+            base.buttonStyle(GlassButtonStyle()).glassEffect(.regular.tint(tint), in: shape)
+        } else {
+            base.buttonStyle(PlainButtonStyle()).background(shape.fill(newTabButtonBackgroundColor))
+        }
     }
 
     @ViewBuilder private func renderTabItem(_ tab: QuickTerminalTab) -> some View {
@@ -64,35 +74,17 @@ struct QuickTerminalTabBarView: View {
                     tabManager.closeTab(tab)
                 }
             },
+            glassNS: glassNS
         )
-        .contextMenu {
-            Button("Close Tab") {
-                tabManager.closeTab(tab)
-            }
-            Button("Close Other Tabs") {
-                tabManager.tabs.forEach { otherTab in
-                    if otherTab.id != tab.id {
-                        tabManager.closeTab(otherTab)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .onDrag {
-            tabManager.draggedTab = tab
-            return NSItemProvider(object: tab.id.uuidString as NSString)
-        }
-        .onDrop(
-            of: [.text],
-            delegate: QuickTerminalTabDropDelegate(
-                item: tab,
-                tabManager: tabManager,
-                currentTab: tabManager.draggedTab
-            )
-        )
-
-        Divider()
-            .background(Color(NSColor.separatorColor))
+        .padding(.trailing, 4) // gives the separator its own space (prevents glass bleed)
+//        .overlay(alignment: .trailing) {
+//            Rectangle()
+//                .fill(Color(NSColor.separatorColor))
+//                .frame(width: 1)
+//                .padding(.vertical, 2)
+//                .allowsHitTesting(false)
+//                .zIndex(10) // force on top if anything overlaps
+//        }
     }
 }
 
