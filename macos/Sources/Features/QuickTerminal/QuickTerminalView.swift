@@ -10,8 +10,6 @@ struct QuickTerminalView: View {
         VStack(spacing: 0) {
             if #available(macOS 26.0, *) {
                 WindowDragBar()
-                    .padding(.horizontal, 8)
-                    .padding(.top, 8)
             }
 
             if tabManager.tabs.count > 1 {
@@ -35,7 +33,7 @@ struct WindowDragBar: View {
         Rectangle()
             .fill(.clear)
             .frame(maxWidth: .infinity)
-            .frame(height: 14)
+            .frame(height: 22)
             .contentShape(Rectangle())
             .gesture(WindowDragGesture())
     }

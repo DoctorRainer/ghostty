@@ -23,17 +23,22 @@ struct QuickTerminalTabItemView: View {
 
     var body: some View {
         if #available(macOS 26.0, *) {
-            HStack(spacing: Constants.horizontalSpacing) {
-                renderCloseButton()
-                renderTitle()
+            GlassEffectContainer {
+                HStack(spacing: Constants.horizontalSpacing) {
+                    renderCloseButton()
+                    renderTitle()
+                }
+                .frame(height: Constants.height)
+                .frame(minWidth: Constants.minWidth, maxWidth: .infinity)
+                .contentShape(shape)
+                .glassEffect(.regular.tint(glassTint), in: shape)
+                .glassEffectID(tab.id, in: glassNS)
+                .onHover { isHovering = $0 }
+                .onTapGesture { DispatchQueue.main.async { onSelect() } }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28)
+                )
             }
-            .frame(height: Constants.height)
-            .frame(minWidth: Constants.minWidth, maxWidth: .infinity)
-            .contentShape(shape)
-            .glassEffect(.regular.tint(glassTint), in: shape)
-            .glassEffectID(tab.id, in: glassNS)
-            .onHover { isHovering = $0 }
-            .onTapGesture { DispatchQueue.main.async { onSelect() } }
         } else {
             HStack(spacing: Constants.horizontalSpacing) {
                 renderCloseButton()
