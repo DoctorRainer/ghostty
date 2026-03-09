@@ -32,7 +32,7 @@ class QuickTerminalController: BaseTerminalController {
 
     /// Tracks if we're currently handling a manual resize to prevent recursion
     private var isHandlingResize: Bool = false
-    
+
     /// Tracks if we're mid animation right now
     private var isAnimating = false
 
@@ -144,8 +144,9 @@ class QuickTerminalController: BaseTerminalController {
             glass.cornerRadius = 28
             glass.clipsToBounds = true
             glass.tintColor = NSColor.black.withAlphaComponent(0.6)
+            // glass.tintColor = NSColor.black
             glass.style = .clear
-            
+
             hosting.wantsLayer = true
             hosting.layer?.backgroundColor = NSColor.clear.cgColor
             hosting.frame = glass.bounds
@@ -464,7 +465,7 @@ class QuickTerminalController: BaseTerminalController {
             // The deinit will restore.
             hiddenDock = nil
         }
-        
+
         isAnimating = true
 
         // Run the animation that moves our window into the proper place and makes
@@ -480,7 +481,7 @@ class QuickTerminalController: BaseTerminalController {
             },
             completionHandler: {
                 self.isAnimating = false
-                
+
                 // There is a very minor delay here so waiting at least an event loop tick
                 // keeps us safe from the view not being on the window.
                 DispatchQueue.main.async {
@@ -574,7 +575,7 @@ class QuickTerminalController: BaseTerminalController {
 
         // If we hid the dock then we unhide it.
         hiddenDock = nil
-        
+
         position.saveCurrentFrame(window)
 
         // If the window isn't on our active space then we don't animate, we just
@@ -605,7 +606,7 @@ class QuickTerminalController: BaseTerminalController {
         // popUpMenu and above do what we want. This gets it above the menu bar
         // and lets us render off screen.
         window.level = .popUpMenu
-        
+
         isAnimating = true
 
         NSAnimationContext.runAnimationGroup(
@@ -619,7 +620,7 @@ class QuickTerminalController: BaseTerminalController {
             },
             completionHandler: {
                 self.isAnimating = false
-                
+
                 // This causes the window to be removed from the screen list and macOS
                 // handles what should be focused next.
                 // Only orderOut if NOT in fullscreen — fullscreen windows must stay on-screen
